@@ -1,7 +1,7 @@
 import ByteBufferClass from "./ByteBufferClass.tsx";
 
-type attrib = number | null;
-type AnimationFrame = [x: attrib, y: attrib, z: attrib, b: attrib, g: attrib, r: attrib, pscale: attrib];
+export type AnimationParticle =
+    [x: number, y: number, z: number, b: number, g: number, r: number, pscale: number];
 
 async function getFrames(file: File) {
 
@@ -16,7 +16,7 @@ async function getFrames(file: File) {
 
     console.log("bb:", bb)
 
-    const frames: AnimationFrame[] = [];
+    const frames: AnimationParticle[][] = [];
 
 // read all frames
     while (bb.offset < length) {
@@ -27,6 +27,7 @@ async function getFrames(file: File) {
 
 
         // read particles for single frame
+        const frame: AnimationParticle[] = [];
         for (let i = 0; i < frameLength; i++) {
             const x = bb.readFloat16();
             const y = bb.readFloat16();
@@ -35,9 +36,10 @@ async function getFrames(file: File) {
             const green = bb.readUint8();
             const red = bb.readUint8();
             const pscale = bb.readUint8();
-            frames.push([x, y, z, blue, green, red, pscale]);
+            frame.push([x, y, z, blue, green, red, pscale]);
         }
         console.log("flength: ", frameLength);
+        frames.push(frame);
     }
     return frames;
 }
