@@ -1,47 +1,89 @@
-import ByteBufferClass from "./ByteBufferClass.tsx";
+import {getFloat16} from "@petamoriken/float16";
 
 export type AnimationParticle =
     [x: number, y: number, z: number, b: number, g: number, r: number, pscale: number];
 
-async function getFrames(file: File) {
-
-    const length = file.size;
+async function getFrames(file: File): Promise<AnimationParticle[][]> {
 
     // console.log("length: ", length);
-    const buffer = new ArrayBuffer(length);
-    const view = new DataView(buffer);
-    const result = await file.stream().getReader({mode: "byob"}).read(view);
-    const bb = new ByteBufferClass(result);
-    if (bb === null) return console.log("invalid file");
+    const reader = file.stream().getReader()
 
-    // console.log("bb:", bb)
+    const buffer = new Uint8Array(file.size);
+    const view = new DataView(buffer.buffer);
+
+    let readOffset = 0;
+
+    async function readData() {
+        const {done, value} = await reader.read();
+
+        if (done) {
+            console.log("read complete");
+            reader.releaseLock();
+            return;
+        }
+
+        console.log("read data: ", value);
+        buffer.set(value, readOffset);
+        readOffset += value.byteLength;
+
+        await readData();
+    }
+
+    await readData();
+
+    console.log("done data:", buffer);
+
+    const value = view;
+    if (value === undefined) {
+        console.log("invalid file");
+        return [];
+    }
+
+    // console.log("bb:", view);
 
     const frames: AnimationParticle[][] = [];
+    let offset = 0;
 
-// read all frames
-    while (bb.offset < length) {
-        // console.log("offset:", bb.offset)
+    console.log("value.byteLength", value.byteLength);
+    console.log("file.size", file.size);
 
-        const frameLength = bb.readUint16();
-        if (frameLength === null) return;
+
+    // read all frames
+    while (offset < value.byteLength) {
+        // console.log("offset:", offset, "length:", length, "bytelength:", value.byteLength, "byteoffset:", value.byteOffset);
+
+        const frameLength = value.getUint16(offset, true);
+        offset += 2;
+        if (frameLength === null) return frames;
 
 
         // read particles for single frame
         const frame: AnimationParticle[] = [];
         for (let i = 0; i < frameLength; i++) {
-            const x = bb.readFloat16();
-            const y = bb.readFloat16();
-            const z = bb.readFloat16();
-            const blue = bb.readUint8();
-            const green = bb.readUint8();
-            const red = bb.readUint8();
-            const pscale = bb.readUint8();
-            frame.push([x, y, z, blue, green, red, pscale]);
+            const x = getFloat16(value, offset, true);
+            offset += 2;
+            const y = getFloat16(value, offset, true);
+            offset += 2;
+            const z = getFloat16(value, offset, true);
+            offset += 2;
+            const b = value.getUint8(offset);
+            offset += 1;
+            const g = value.getUint8(offset);
+            offset += 1;
+            const r = value.getUint8(offset);
+            offset += 1;
+            const s = value.getUint8(offset);
+            offset += 1;
+            if (x === null || y === null || z === null || b === null || g === null || r === null || s === null) return frames;
+            frame.push([x, y, z, b, g, r, s]);
         }
         // console.log("flength: ", frameLength);
         frames.push(frame);
     }
+    console.log("frames:", frames);
+
     return frames;
+
 }
 
 export {getFrames};

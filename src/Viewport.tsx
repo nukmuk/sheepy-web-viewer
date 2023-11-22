@@ -12,9 +12,9 @@ export default function Viewport() {
         const file = e.dataTransfer.files[0];
         const frames = await getFrames(file);
 
-        if (!frames) return;
+        // if (!frames) return;
         // frames.forEach(frame => {
-        // console.log(frames[0])
+        console.log(frames[0])
         setCurrentFrame(frames[0]);
         // })
     }

@@ -1,5 +1,6 @@
 import {getFloat16} from "@petamoriken/float16";
 
+// todo DELETE THIS SHIT CLASS
 export default class ByteBufferClass {
     private result: ReadableStreamReadResult<DataView>
     offset: number;
@@ -9,34 +10,38 @@ export default class ByteBufferClass {
         this.offset = 0;
     }
 
-    readFloat16(): number {
-        if (this.result.value) {
-            const value = getFloat16(this.result.value, this.offset, true);
-            // console.log("fp16: ", value, "offset: ", this.offset);
-            this.offset += 2;
-            return value;
+    readFloat16(): number | null {
+        try {
+            if (this.result.value) {
+                const value = getFloat16(this.result.value, this.offset, true);
+                // console.log("fp16: ", value, "offset: ", this.offset);
+                this.offset += 2;
+                return value;
+            }
+            return null;
+        } catch {
+            return null;
         }
-        return 0;
     }
 
-    readUint16(): number {
+    readUint16(): number | null {
         if (this.result.value) {
             const value = this.result.value.getUint16(this.offset, true);
             // console.log("uint16: ", value, "offset: ", this.offset);
             this.offset += 2;
             return value;
         }
-        return 0;
+        return null;
     }
 
-    readUint8(): number {
+    readUint8(): number | null {
         if (this.result.value) {
             const value = this.result.value.getUint8(this.offset);
             // console.log("uint8: ", value, "offset: ", this.offset);
             this.offset += 1;
             return value;
         }
-        return 0;
+        return null;
     }
 
 }
