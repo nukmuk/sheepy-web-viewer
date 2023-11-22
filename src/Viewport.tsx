@@ -12,11 +12,14 @@ export default function Viewport() {
         const file = e.dataTransfer.files[0];
         const frames = await getFrames(file);
 
-        // if (!frames) return;
-        // frames.forEach(frame => {
-        console.log(frames[0])
-        setCurrentFrame(frames[0]);
-        // })
+        if (frames.length === 0) return setCurrentFrame([]);
+        let counter = 0;
+        const play = setInterval(() => {
+            setCurrentFrame(frames[counter]);
+            counter++;
+
+            if(counter >= frames.length - 1) clearInterval(play);
+        }, 1000 / 20);
     }
 
     function handleDragOver(e: DragEvent<HTMLDivElement>) {
@@ -24,12 +27,10 @@ export default function Viewport() {
     }
 
     function Particles() {
-        if (currentFrame === null) return;
         return currentFrame.map(particle => {
             const [x, y, z, b, g, r, s] = particle;
-            // console.log("particle: ", particle);
-            return <Sphere scale={s/255/4} position={[x, y, z]}>
-                <meshStandardMaterial color={[r/255, g/255 ,b/255]}/>
+            return <Sphere scale={s / 255 / 4} position={[x, y, z]}>
+                <meshStandardMaterial color={[r / 255, g / 255, b / 255]}/>
             </Sphere>;
         })
     }
