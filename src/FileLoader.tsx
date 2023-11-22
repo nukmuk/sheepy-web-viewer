@@ -7,20 +7,20 @@ async function getFrames(file: File) {
 
     const length = file.size;
 
-    console.log("length: ", length);
+    // console.log("length: ", length);
     const buffer = new ArrayBuffer(length);
     const view = new DataView(buffer);
     const result = await file.stream().getReader({mode: "byob"}).read(view);
     const bb = new ByteBufferClass(result);
     if (bb === null) return console.log("invalid file");
 
-    console.log("bb:", bb)
+    // console.log("bb:", bb)
 
     const frames: AnimationParticle[][] = [];
 
 // read all frames
     while (bb.offset < length) {
-        console.log("offset:", bb.offset)
+        // console.log("offset:", bb.offset)
 
         const frameLength = bb.readUint16();
         if (frameLength === null) return;
@@ -38,7 +38,7 @@ async function getFrames(file: File) {
             const pscale = bb.readUint8();
             frame.push([x, y, z, blue, green, red, pscale]);
         }
-        console.log("flength: ", frameLength);
+        // console.log("flength: ", frameLength);
         frames.push(frame);
     }
     return frames;

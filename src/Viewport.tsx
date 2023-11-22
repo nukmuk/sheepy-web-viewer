@@ -14,7 +14,7 @@ export default function Viewport() {
 
         if (!frames) return;
         // frames.forEach(frame => {
-        console.log(frames[0])
+        // console.log(frames[0])
         setCurrentFrame(frames[0]);
         // })
     }
@@ -27,7 +27,7 @@ export default function Viewport() {
         if (currentFrame === null) return;
         return currentFrame.map(particle => {
             const [x, y, z, b, g, r, s] = particle;
-            console.log("particle: ", particle);
+            // console.log("particle: ", particle);
             return <Sphere scale={s/255/4} position={[x, y, z]}>
                 <meshStandardMaterial color={[r/255, g/255 ,b/255]}/>
             </Sphere>;
