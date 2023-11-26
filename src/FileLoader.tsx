@@ -22,7 +22,7 @@ async function getFrames(file: File): Promise<AnimationParticle[][]> {
             return;
         }
 
-        console.log("read data:", value);
+        // console.log("read data:", value);
         buffer.set(value, readOffset);
         readOffset += value.byteLength;
 
@@ -67,13 +67,13 @@ async function getFrames(file: File): Promise<AnimationParticle[][]> {
                 offset += 2;
                 const z = getFloat16(value, offset, true);
                 offset += 2;
-                const b = value.getUint8(offset);
+                const b = value.getUint8(offset) / 255;
                 offset += 1;
-                const g = value.getUint8(offset);
+                const g = value.getUint8(offset) / 255;
                 offset += 1;
-                const r = value.getUint8(offset);
+                const r = value.getUint8(offset) / 255;
                 offset += 1;
-                const s = value.getUint8(offset);
+                const s = value.getUint8(offset) / 255 / 4;
                 offset += 1;
                 if (x === null || y === null || z === null || b === null || g === null || r === null || s === null) return frames;
                 frame.push([x, y, z, b, g, r, s]);
@@ -88,7 +88,7 @@ async function getFrames(file: File): Promise<AnimationParticle[][]> {
     }
 
 
-    console.log("frames:", frames);
+    // console.log("frames:", frames);
 
     return frames;
 

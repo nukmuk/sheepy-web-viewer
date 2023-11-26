@@ -1,24 +1,42 @@
 import {Canvas} from "@react-three/fiber";
 import {DragEvent, useState} from "react";
-import {OrbitControls, PerspectiveCamera, Sphere} from "@react-three/drei";
+import {Instance, Instances, OrbitControls, PerspectiveCamera, PointsBuffer} from "@react-three/drei";
 import {AnimationParticle, getFrames} from "./FileLoader.tsx";
-
+import PlayButton from "./PlayButton.tsx";
+import {Perf} from "r3f-perf";
 
 export default function Viewport() {
-    const [currentFrame, setCurrentFrame] = useState<AnimationParticle[]>([]);
+    // const [currentFrame, setCurrentFrame] = useState<AnimationParticle[]>([]);
+    const [frame, setFrame] = useState<number>(0);
+    const [frames, setFrames] = useState<AnimationParticle[][]>([]);
 
     async function handleDrop(e: DragEvent<HTMLDivElement>) {
         e.preventDefault();
         const file = e.dataTransfer.files[0];
-        const frames = await getFrames(file);
+        const tempframes = await getFrames(file);
+        // console.log("tempframes:", tempframes);
+        setFrames(tempframes);
 
-        if (frames.length === 0) return setCurrentFrame([]);
-        let counter = 0;
+
+    }
+
+    function play() {
+        console.log("total frames:", frames.length);
+        console.log("frames:", frames);
+
         const play = setInterval(() => {
-            setCurrentFrame(frames[counter]);
-            counter++;
 
-            if(counter >= frames.length - 1) clearInterval(play);
+            setFrame(prevState => {
+                const n = prevState + 1;
+                if (n >= frames.length) {
+                    clearInterval(play);
+                    console.log("stopping play");
+                    return 0;
+                }
+                // console.log("n:", n);
+                return n;
+            });
+
         }, 1000 / 20);
     }
 
@@ -26,27 +44,83 @@ export default function Viewport() {
         return e.preventDefault();
     }
 
+    // const instances: JSX.Element[] = [];
+    //
+    // useEffect(() => {
+    //     console.log("FIRST TIME CREATION");
+    //     instances.length = 0;
+    //     for (let i = 0; i < 100; i++) {
+    //         instances.push(<Instance position={[i,0,0]} color={[0,0,0]} scale={1} key={i}/>);
+    //     }
+    // }, []);
+
     function Particles() {
-        return currentFrame.map(particle => {
-            const [x, y, z, b, g, r, s] = particle;
-            return <Sphere scale={s / 255 / 4} position={[x, y, z]}>
-                <meshStandardMaterial color={[r / 255, g / 255, b / 255]}/>
-            </Sphere>;
-        })
+        if (frames.length === 0) return;
+        if (frame === null) return
+
+        const currFrame = frames[frame];
+
+        const positions = new Float32Array(currFrame.length * 3);
+        const colors = new Float32Array(currFrame.length * 3);
+
+        for (let i = 0; i < currFrame.length; i++) {
+            positions.set([currFrame[i][0], currFrame[i][1], currFrame[i][2], ], i*3);
+        }
+        // test.set([4,5,6], 1);
+
+        console.log("test:", positions);
+
+        return <points>
+            <bufferGeometry attach="geometry">
+                <bufferAttribute
+                    attach={"attributes-position"}
+                    array={positions}
+                    count={positions.length / 3}
+                    itemSize={3}/>
+            </bufferGeometry>
+            <pointsMaterial
+                attach={"material"}
+                color={0x00aaff}
+                size={0.5}
+                sizeAttenuation
+                transparent={false}
+                alphaTest={0.5}
+                opacity={1.0}
+            />
+        </points>
+
+        // return <Instances limit={16384}>
+        //     <boxGeometry/>
+        //     <meshStandardMaterial/>
+        //     {frames[frame].map((p, index) => {
+        //             const [x, y, z, b, g, r, s] = p;
+        //
+        //             // if (index % 100 != 0) return;
+        //             return <Instance key={index} position={[x, y, z]} color={[r, g, b]} scale={s}/>;
+        //
+        //         }
+        //     )};
+        // </Instances>
     }
 
 
     return (
-        <div className={"absolute inset-0 bg-neutral-950"} onDrop={handleDrop} onDragOver={handleDragOver}>
-            <Canvas className={""}>
-                <PerspectiveCamera makeDefault position={[5, 5, 5]}/>
-                <OrbitControls rotateSpeed={.2} panSpeed={.5}/>
-                {/*return <Circle position={[currentFrame[0], currentFrame[1], currentFrame[2]]}/>*/}
-
-                <Particles/>
-                <ambientLight/>
-                <gridHelper/>
-            </Canvas>
-        </div>
+        <>
+            <div className={"z-10 absolute text-white"}>
+                <PlayButton handleClick={play}/>
+                <p>Loaded {frames.length} frames</p>
+                <p>Frame: {frame}</p>
+            </div>
+            <div className={"absolute inset-0 bg-neutral-950"} onDrop={handleDrop} onDragOver={handleDragOver}>
+                <Canvas>
+                    <PerspectiveCamera makeDefault position={[5, 5, 5]}/>
+                    <OrbitControls rotateSpeed={.2} panSpeed={.5}/>
+                    <Particles/>
+                    <ambientLight/>
+                    <gridHelper/>
+                    <Perf/>
+                </Canvas>
+            </div>
+        </>
     )
 }
