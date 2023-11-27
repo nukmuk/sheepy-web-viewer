@@ -8,18 +8,19 @@ import {Perf} from "r3f-perf";
 import {Slider} from "@/components/ui/slider.tsx";
 import {Button} from "@/components/ui/button.tsx";
 
-import {Pause, Play} from "lucide-react";
+import {Pause, Play, Upload} from "lucide-react";
 
 export default function Viewport() {
     // const [currentFrame, setCurrentFrame] = useState<AnimationParticle[]>([]);
     const [frame, setFrame] = useState<number>(0);
     const [frames, setFrames] = useState<AnimationParticle[][]>([]);
     const [playing, setPlaying] = useState(false);
+    const [draggingFile, setDraggingFile] = useState<boolean>(false);
 
     useEffect(() => {
         if (!playing) return;
         const interval = setInterval(() => {
-            console.log("interval");
+            // console.log("interval");
             setFrame(prevState => {
                 const n = prevState + 1;
                 if (n >= frames.length) {
@@ -40,11 +41,16 @@ export default function Viewport() {
         // console.log("tempframes:", tempframes);
         setFrames(tempframes);
         setFrame(0);
-        // setPlaying(false);
+        setPlaying(true);
     }
 
     function handleDragOver(e: DragEvent<HTMLDivElement>) {
-        return e.preventDefault();
+        e.preventDefault();
+        setDraggingFile(true);
+    }
+
+    function handleDragEnd() {
+        setDraggingFile(false);
     }
 
     function Particles() {
@@ -106,34 +112,50 @@ export default function Viewport() {
 
     return (
         <>
+
+            <div className={"absolute inset-0 h-screen w-screen bg-transparent"}>
+                <Canvas onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragEnd}>
+                    <PerspectiveCamera makeDefault position={[5, 5, 5]}/>
+                    <OrbitControls rotateSpeed={.2} panSpeed={.5}/>
+                    <Particles/>
+                    <ambientLight/>
+                    <gridHelper/>
+                    <Perf minimal="true"/>
+                </Canvas>
+            </div>
+
+            {frames.length == 0 ?
+                <div
+                    className={`flex h-screen w-screen absolute items-center justify-center select-none pointer-events-none`}>
+                    <div
+                        className={`flex flex-col items-center justify-center h-min border border-neutral-800 p-6 py-4 rounded-xl gap-2 backdrop-blur-sm ${draggingFile ? "text-neutral-400 bg-neutral-50 bg-opacity-5" : "text-neutral-500"}`}>
+                        <Upload/>
+                        <p>Drag and drop Shiny (.shny) file</p>
+                    </div>
+                </div> : null}
+
             <div
-                className="flex flex-col justify-start p-4 pb-16 absolute w-screen h-screen text-foreground pointer-events-none gap-8 select-none">
+                className="flex flex-col justify-start p-8 absolute w-screen h-screen text-foreground pointer-events-none gap-8 select-none">
                 <div className="mb-auto">
                     {/*<button onClick={handlePlayClick} className={`text-5xl + {playing ? "text-green-500" : text-yellow-500}`}>{playing ? "Pause" : "Play"}</button>*/}
                     <p>Loaded {frames.length} frames</p>
                     <p>Frame: {frame}</p>
                     {/*<p>Playing: {playing.toString()}</p>*/}
                 </div>
-                <div className="flex justify-start gap-4">
-                    <Button onClick={handlePlayClick} variant="secondary" size="icon" className="w-12 h-12 pointer-events-auto"
+                <div className="flex justify-start gap-8">
+                    <Button onClick={handlePlayClick} variant="secondary" size="icon"
+                            className="w-12 h-12 pointer-events-auto"
                         //     className={`text-5xl pointer-events-auto ${(playing ? "text-yellow-500" : "text-green-500")}`}>
                         // {playing ? "Pause" : "Play"}
                     >
                         {playing ? <Pause className="w-8 h-8"/> : <Play className="w-8 h-8"/>}
                     </Button>
-                    <Slider value={[frame]} className="cursor-pointer pointer-events-auto" min={0} max={frames.length - 1} step={1} onValueChange={v => setFrame(v[0])}/>
+                    <Slider value={[frame]} className="cursor-pointer pointer-events-auto" min={0}
+                            max={Math.max(frames.length - 1, 0)} step={1} onValueChange={v => setFrame(v[0])}/>
                 </div>
             </div>
-            <div className={"absolute inset-0 bg-background -z-10"} onDrop={handleDrop} onDragOver={handleDragOver}>
-                <Canvas>
-                    <PerspectiveCamera makeDefault position={[5, 5, 5]}/>
-                    <OrbitControls rotateSpeed={.2} panSpeed={.5}/>
-                    <Particles/>
-                    <ambientLight/>
-                    <gridHelper/>
-                    <Perf/>
-                </Canvas>
-            </div>
+
+
         </>
     )
 }
