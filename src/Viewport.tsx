@@ -1,7 +1,7 @@
 "use client"
 
 import {Canvas} from "@react-three/fiber";
-import {DragEvent, useEffect, useState} from "react";
+import {DragEvent, useEffect, useRef, useState} from "react";
 import {OrbitControls, PerspectiveCamera} from "@react-three/drei";
 import {AnimationParticle, getFrames} from "./FileLoader.tsx";
 import {Perf} from "r3f-perf";
@@ -9,6 +9,9 @@ import {Slider} from "@/components/ui/slider.tsx";
 import {Button} from "@/components/ui/button.tsx";
 
 import {Pause, Play, Upload} from "lucide-react";
+import {TextureLoader} from "three";
+
+const redstone = new TextureLoader().load("/assets/generic_7.png");
 
 export default function Viewport() {
     // const [currentFrame, setCurrentFrame] = useState<AnimationParticle[]>([]);
@@ -16,6 +19,8 @@ export default function Viewport() {
     const [frames, setFrames] = useState<AnimationParticle[][]>([]);
     const [playing, setPlaying] = useState(false);
     const [draggingFile, setDraggingFile] = useState<boolean>(false);
+    const pointsMaterialRef = useRef(null);
+
 
     useEffect(() => {
         if (!playing) return;
@@ -93,13 +98,15 @@ export default function Viewport() {
                         itemSize={1}/>
                 </bufferGeometry>
                 <pointsMaterial
+                    ref={pointsMaterialRef}
                     attach={"material"}
                     vertexColors={true}
-                    size={0.1}
+                    size={0.2}
                     sizeAttenuation
                     transparent={false}
                     alphaTest={0.5}
                     opacity={1.0}
+                    map={redstone}
                 />
             </points>
         </>
