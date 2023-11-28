@@ -21,6 +21,7 @@ export default function Viewport() {
     const [frames, setFrames] = useState<AnimationParticle[][]>([]);
     const [playing, setPlaying] = useState(false);
     const [draggingFile, setDraggingFile] = useState<boolean>(false);
+    const [hideFileUpload, setHideFileUpload] = useState(false);
     const pointsMaterialRef = useRef(null);
 
 
@@ -42,6 +43,7 @@ export default function Viewport() {
     }, [frames.length, playing]);
 
     async function handleDrop(e: DragEvent<HTMLDivElement>) {
+        setHideFileUpload(true);
         e.preventDefault();
         const file = e.dataTransfer.files[0];
         const tempframes = await getFrames(file);
@@ -119,13 +121,10 @@ export default function Viewport() {
     }
 
     async function loadExample(fileName: string) {
+        setHideFileUpload(true);
         const response = await fetch(`/assets/${fileName}`);
-        console.log("response:", response);
         const blob = await response.blob();
-        console.log("blob:", blob);
         const file = new File([blob], fileName);
-        console.log("file:", file);
-        // const tempFrames = await getFrames(file);
         setFrames(await getFrames(file));
         setFrame(0);
         setPlaying(true);
@@ -145,7 +144,7 @@ export default function Viewport() {
                 </Canvas>
             </div>
 
-            {frames.length == 0 ?
+            {frames.length == 0 && !hideFileUpload ?
                 <div
                     className={`flex h-screen w-screen absolute items-center justify-center select-none pointer-events-none`}>
                     <div
