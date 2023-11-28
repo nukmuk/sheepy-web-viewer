@@ -132,7 +132,6 @@ export default function Viewport() {
 
     return (
         <>
-
             <div className={"absolute inset-0 h-screen w-screen bg-transparent"}>
                 <Canvas onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragEnd}>
                     <PerspectiveCamera makeDefault position={[5, 5, 5]}/>
@@ -165,20 +164,20 @@ export default function Viewport() {
                 </div> : null}
 
             <div
-                className="flex flex-col justify-start p-8 absolute w-screen h-screen text-foreground pointer-events-none gap-8 select-none">
+                className="flex flex-col justify-start p-4 absolute w-screen h-full text-foreground pointer-events-none select-none">
                 <div className="mb-auto">
                     {/*<button onClick={handlePlayClick} className={`text-5xl + {playing ? "text-green-500" : text-yellow-500}`}>{playing ? "Pause" : "Play"}</button>*/}
                     <p>Loaded {frames.length} frames</p>
                     <p>Frame: {frame}</p>
                     {/*<p>Playing: {playing.toString()}</p>*/}
                 </div>
-                <div className="flex justify-start gap-8">
+                <div className="flex justify-start gap-6">
                     <Button onClick={handlePlayClick} variant="secondary" size="icon"
-                            className="w-12 h-12 pointer-events-auto"
+                            className="h-12 w-12 pointer-events-auto"
                         //     className={`text-5xl pointer-events-auto ${(playing ? "text-yellow-500" : "text-green-500")}`}>
                         // {playing ? "Pause" : "Play"}
                     >
-                        {playing ? <Pause className="w-8 h-8"/> : <Play className="w-8 h-8"/>}
+                        {playing ? <Pause className="w-12"/> : <Play className="w-12"/>}
                     </Button>
                     <Slider value={[frame]} className="cursor-pointer pointer-events-auto" min={0}
                             max={Math.max(frames.length - 1, 0)} step={1} onValueChange={v => setFrame(v[0])}/>
