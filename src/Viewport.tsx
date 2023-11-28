@@ -1,15 +1,15 @@
 "use client"
 
-import {Canvas} from "@react-three/fiber";
-import {DragEvent, useEffect, useRef, useState} from "react";
-import {OrbitControls, PerspectiveCamera} from "@react-three/drei";
-import {AnimationParticle, getFrames} from "./FileLoader.tsx";
-import {Perf} from "r3f-perf";
-import {Slider} from "@/components/ui/slider.tsx";
-import {Button} from "@/components/ui/button.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { Slider } from "@/components/ui/slider.tsx";
+import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
+import { Canvas } from "@react-three/fiber";
+import { DragEvent, useEffect, useRef, useState } from "react";
+import { AnimationParticle, getFrames } from "./FileLoader.tsx";
 
-import {Pause, Play, Upload} from "lucide-react";
-import {TextureLoader, NearestFilter} from "three";
+import { Pause, Play, Upload } from "lucide-react";
+import { NearestFilter, TextureLoader } from "three";
+import { ModeToggle } from "./components/mode-toggle.tsx";
 
 const redstone = new TextureLoader().load("/assets/generic_7.png");
 redstone.minFilter = NearestFilter;
@@ -139,7 +139,7 @@ export default function Viewport() {
                     <Particles/>
                     <ambientLight/>
                     <gridHelper/>
-                    <Perf minimal="true"/>
+                    {/* <Perf position="top-right" minimal="true"/> */}
                 </Canvas>
             </div>
 
@@ -165,11 +165,16 @@ export default function Viewport() {
 
             <div
                 className="flex flex-col justify-start p-4 absolute w-screen h-full text-foreground pointer-events-none select-none">
-                <div className="mb-auto">
-                    {/*<button onClick={handlePlayClick} className={`text-5xl + {playing ? "text-green-500" : text-yellow-500}`}>{playing ? "Pause" : "Play"}</button>*/}
-                    <p>Loaded {frames.length} frames</p>
-                    <p>Frame: {frame}</p>
-                    {/*<p>Playing: {playing.toString()}</p>*/}
+                <div className="flex justify-between mb-auto">
+                    <div className="">
+                        {/*<button onClick={handlePlayClick} className={`text-5xl + {playing ? "text-green-500" : text-yellow-500}`}>{playing ? "Pause" : "Play"}</button>*/}
+                        <p>Loaded {frames.length} frames</p>
+                        <p>Frame: {frame}</p>
+                        {/*<p>Playing: {playing.toString()}</p>*/}
+                    </div>
+                    <div className="pointer-events-auto">
+                            <ModeToggle/>
+                    </div>
                 </div>
                 <div className="flex justify-start gap-6">
                     <Button onClick={handlePlayClick} variant="secondary" size="icon"
