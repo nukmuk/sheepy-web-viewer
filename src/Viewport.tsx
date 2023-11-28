@@ -9,9 +9,11 @@ import {Slider} from "@/components/ui/slider.tsx";
 import {Button} from "@/components/ui/button.tsx";
 
 import {Pause, Play, Upload} from "lucide-react";
-import {TextureLoader} from "three";
+import {TextureLoader, NearestFilter} from "three";
 
 const redstone = new TextureLoader().load("/assets/generic_7.png");
+redstone.minFilter = NearestFilter;
+redstone.magFilter = NearestFilter;
 
 export default function Viewport() {
     // const [currentFrame, setCurrentFrame] = useState<AnimationParticle[]>([]);
