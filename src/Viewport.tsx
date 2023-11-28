@@ -43,7 +43,6 @@ export default function Viewport() {
         e.preventDefault();
         const file = e.dataTransfer.files[0];
         const tempframes = await getFrames(file);
-        // console.log("tempframes:", tempframes);
         setFrames(tempframes);
         setFrame(0);
         setPlaying(true);
@@ -117,6 +116,16 @@ export default function Viewport() {
         setPlaying(prevState => !prevState);
     }
 
+    async function loadExample(fileName: string) {
+        const response = await fetch(`assets/${fileName}`);
+        const blob = await response.blob();
+        const file = new File([blob], fileName);
+        // const tempFrames = await getFrames(file);
+        setFrames(await getFrames(file));
+        setFrame(0);
+        setPlaying(true);
+    }
+
     return (
         <>
 
@@ -138,6 +147,16 @@ export default function Viewport() {
                         className={`flex flex-col items-center justify-center h-min border border-neutral-800 p-6 py-4 rounded-xl gap-2 backdrop-blur-sm ${draggingFile ? "text-neutral-400 bg-neutral-50 bg-opacity-5" : "text-neutral-500"}`}>
                         <Upload/>
                         <p>Drag and drop Shiny (.shny) file</p>
+                        <div className="pointer-events-auto">
+                            <Button variant="link" className="p-0 h-min"
+                                    onClick={() => loadExample("len3.shny")}>or</Button>
+                            {" "}
+                            <Button variant="link" className="p-0 h-min"
+                                    onClick={() => loadExample("req.shny")}>try</Button>
+                            {" "}
+                            <Button variant="link" className="p-0 h-min"
+                                    onClick={() => loadExample("sheepy2.shny")}>example</Button>
+                        </div>
                     </div>
                 </div> : null}
 
