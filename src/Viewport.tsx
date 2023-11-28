@@ -120,8 +120,11 @@ export default function Viewport() {
 
     async function loadExample(fileName: string) {
         const response = await fetch(`/assets/${fileName}`);
+        console.log("response:", response);
         const blob = await response.blob();
+        console.log("blob:", blob);
         const file = new File([blob], fileName);
+        console.log("file:", file);
         // const tempFrames = await getFrames(file);
         setFrames(await getFrames(file));
         setFrame(0);
