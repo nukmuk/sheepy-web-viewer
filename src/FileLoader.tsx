@@ -1,12 +1,24 @@
-import {getFloat16} from "@petamoriken/float16";
+import { getFloat16 } from "@petamoriken/float16";
 
-export type AnimationParticle =
-    [x: number, y: number, z: number, b: number, g: number, r: number, pscale: number];
+export type AnimationParticle = [
+    x: number,
+    y: number,
+    z: number,
+    b: number,
+    g: number,
+    r: number,
+    pscale: number,
+];
+
+self.onmessage = async (e: MessageEvent<File>) => {
+    console.log("getting frames:", e.data);
+    const frames = await getFrames(e.data);
+    self.postMessage(frames);
+};
 
 async function getFrames(file: File): Promise<AnimationParticle[][]> {
-
     // console.log("length:", length);
-    const reader = file.stream().getReader()
+    const reader = file.stream().getReader();
 
     const buffer = new Uint8Array(file.size);
     const view = new DataView(buffer.buffer);
@@ -14,7 +26,7 @@ async function getFrames(file: File): Promise<AnimationParticle[][]> {
     let readOffset = 0;
 
     async function readData() {
-        const {done, value} = await reader.read();
+        const { done, value } = await reader.read();
 
         if (done) {
             console.log("read complete");
@@ -48,15 +60,12 @@ async function getFrames(file: File): Promise<AnimationParticle[][]> {
     console.log("file.size", file.size);
 
     try {
-
-
         // read all frames
         while (offset < value.byteLength) {
             // console.log("offset:", offset, "length:", length, "bytelength:", value.byteLength, "byteoffset:", value.byteOffset);
 
             const frameLength = value.getUint16(offset, true);
             offset += 2;
-
 
             // read particles for single frame
             const frame: AnimationParticle[] = [];
@@ -75,23 +84,29 @@ async function getFrames(file: File): Promise<AnimationParticle[][]> {
                 offset += 1;
                 const s = value.getUint8(offset) / 255 / 4;
                 offset += 1;
-                if (x === null || y === null || z === null || b === null || g === null || r === null || s === null) return frames;
+                if (
+                    x === null ||
+                    y === null ||
+                    z === null ||
+                    b === null ||
+                    g === null ||
+                    r === null ||
+                    s === null
+                )
+                    return frames;
                 frame.push([x, y, z, b, g, r, s]);
             }
             // console.log("flength:", frameLength);
             frames.push(frame);
         }
-
     } catch (e) {
-        console.error("failed to read file:", e)
+        console.error("failed to read file:", e);
         return frames;
     }
-
 
     // console.log("frames:", frames);
 
     return frames;
-
 }
 
-export {getFrames};
+export { getFrames };
