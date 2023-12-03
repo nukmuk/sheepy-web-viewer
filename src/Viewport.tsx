@@ -95,6 +95,7 @@ export default function Viewport() {
     }
 
     async function fetchWithProgress(url: string) {
+        setLoadProgess(0);
         const response = await fetch(url);
         const length_string = response.headers.get("Content-Length");
 
