@@ -75,7 +75,7 @@ async function getFrames(file: File): Promise<AnimationParticle[][]> {
         readOffset += value.byteLength;
 
         postLoaderResponse({
-            progress: (readOffset / buffer.byteLength) * 100,
+            progress: readOffset / buffer.byteLength,
         });
         await readData();
     }
@@ -139,7 +139,7 @@ async function getFrames(file: File): Promise<AnimationParticle[][]> {
             }
             // console.log("flength:", frameLength);
             frames.push(frame);
-            postLoaderResponse({ progress: (offset / value.byteLength) * 100 });
+            postLoaderResponse({ progress: offset / value.byteLength });
         }
     } catch (e) {
         console.error("failed to read file:", e);

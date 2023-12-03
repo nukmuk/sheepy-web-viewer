@@ -39,7 +39,6 @@ export default function Viewport() {
     useEffect(() => {
         if (!playing) return;
         const interval = setInterval(() => {
-            // console.log("interval");
             setFrame((prevState) => {
                 const n = prevState + 1;
                 if (n >= frames.length) {
@@ -85,14 +84,38 @@ export default function Viewport() {
     }
     async function loadExample(fileName: string) {
         setAnimState(AnimState.fetching);
-        const response = await fetch(`/assets/${fileName}`);
-        const blob = await response.blob();
-        const file = new File([blob], fileName);
+        const response = await fetchWithProgress(`/assets/${fileName}`);
+        // const blob = await response.blob();
+        const file = new File([response], fileName);
         sendFileToWorker(file);
     }
 
     function sendFileToWorker(file: File) {
         fileLoaderWorker.postMessage(createLoaderInput({ file }));
+    }
+
+    async function fetchWithProgress(url: string) {
+        const response = await fetch(url);
+        const length_string = response.headers.get("Content-Length");
+
+        if (!length_string || !response.body)
+            return await response.arrayBuffer();
+
+        const length = parseInt(length_string);
+
+        const array = new Uint8Array(length);
+        let offset = 0;
+
+        const reader = response.body.getReader();
+
+        for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            array.set(value, offset);
+            offset += value.length;
+            setLoadProgess(offset / length);
+        }
+        return array;
     }
 
     return (
@@ -121,7 +144,6 @@ export default function Viewport() {
                     <LoadingState text={"Setting frames..."} />
                 )}
             </div>
-
             {/*three.js canvas*/}
             <div
                 className={"absolute inset-0 h-screen w-screen bg-transparent"}
@@ -180,7 +202,6 @@ export default function Viewport() {
                     </div>
                 </div>
             )}
-
             {/*"hud"*/}
             <div className="flex flex-col justify-start p-4 absolute w-screen h-full text-foreground pointer-events-none select-none">
                 <div className="flex justify-between mb-auto">
@@ -237,11 +258,14 @@ export default function Viewport() {
                     </Button>
                     <Slider
                         value={[frame]}
-                        className="cursor-pointer pointer-events-auto"
+                        className={`${
+                            frames.length >= 1 && "cursor-pointer"
+                        } pointer-events-auto`}
                         min={0}
                         max={Math.max(frames.length - 1, 0.1)}
                         step={1}
                         onValueChange={(v) => setFrame(v[0])}
+                        disabled={frames.length <= 1}
                     />
                 </div>
             </div>
