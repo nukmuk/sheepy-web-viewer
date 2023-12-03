@@ -3,13 +3,19 @@
 import { Canvas } from "@react-three/fiber";
 import { DragEvent, useEffect, useRef, useState } from "react";
 import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
-import { AnimationParticle } from "./FileLoader.tsx";
+import {
+    AnimationParticle,
+    AnimState,
+    createLoaderInput,
+    LoaderResponse,
+} from "./FileLoader.tsx";
 import { Slider } from "@/components/ui/slider.tsx";
 import { Button } from "@/components/ui/button.tsx";
 
-import { Pause, Play, Upload } from "lucide-react";
+import { Pause, Play, RefreshCcw, Upload } from "lucide-react";
 import { NearestFilter, TextureLoader } from "three";
 import { ModeToggle } from "./components/mode-toggle.tsx";
+import LoadingState from "@/Viewport/LoadingState.tsx";
 
 const redstone = new TextureLoader().load("/assets/generic_7.png");
 redstone.minFilter = NearestFilter;
@@ -21,12 +27,13 @@ const fileLoaderWorker = new Worker(
 );
 
 export default function Viewport() {
-    // const [currentFrame, setCurrentFrame] = useState<AnimationParticle[]>([]);
     const [frame, setFrame] = useState<number>(0);
     const [frames, setFrames] = useState<AnimationParticle[][]>([]);
     const [playing, setPlaying] = useState(false);
     const [draggingFile, setDraggingFile] = useState<boolean>(false);
-    const [hideFileUpload, setHideFileUpload] = useState(false);
+    const [animState, setAnimState] = useState<AnimState>(AnimState.nothing);
+    const [loadProgress, setLoadProgess] = useState<number>(0);
+
     const pointsMaterialRef = useRef(null);
 
     useEffect(() => {
@@ -46,18 +53,22 @@ export default function Viewport() {
         return () => clearInterval(interval);
     }, [frames.length, playing]);
 
-    fileLoaderWorker.onmessage = (e: MessageEvent<AnimationParticle[][]>) => {
-        console.log("setting frames");
-        setFrames(e.data);
-        setFrame(0);
-        setPlaying(true);
+    fileLoaderWorker.onmessage = (e: MessageEvent<LoaderResponse>) => {
+        if (e.data.state) setAnimState(e.data.state);
+        if (e.data.frames) {
+            setFrames(e.data.frames);
+            setFrame(0);
+            setPlaying(true);
+            setAnimState(AnimState.ready);
+        }
+        if (e.data.progress) setLoadProgess(e.data.progress);
     };
 
     async function handleDrop(e: DragEvent<HTMLDivElement>) {
-        setHideFileUpload(true);
         e.preventDefault();
+        setAnimState(AnimState.fetching);
         const file = e.dataTransfer.files[0];
-        fileLoaderWorker.postMessage(file);
+        sendFileToWorker(file);
     }
 
     function handleDragOver(e: DragEvent<HTMLDivElement>) {
@@ -69,6 +80,173 @@ export default function Viewport() {
         setDraggingFile(false);
     }
 
+    function handlePlayClick() {
+        setPlaying((prevState) => !prevState);
+    }
+    async function loadExample(fileName: string) {
+        setAnimState(AnimState.fetching);
+        const response = await fetch(`/assets/${fileName}`);
+        const blob = await response.blob();
+        const file = new File([blob], fileName);
+        sendFileToWorker(file);
+    }
+
+    function sendFileToWorker(file: File) {
+        fileLoaderWorker.postMessage(createLoaderInput({ file }));
+    }
+
+    return (
+        <>
+            {/*progress indicator*/}
+            <div className="absolute flex justify-center items-center w-screen h-screen text-muted text-5xl select-none">
+                {animState == AnimState.fetching && (
+                    <LoadingState
+                        text={"Fetching file..."}
+                        progress={loadProgress}
+                    />
+                )}
+                {animState == AnimState.reading && (
+                    <LoadingState
+                        text={"Reading file..."}
+                        progress={loadProgress}
+                    />
+                )}
+                {animState == AnimState.parsing && (
+                    <LoadingState
+                        text={"Parsing file..."}
+                        progress={loadProgress}
+                    />
+                )}
+                {animState == AnimState.setting && (
+                    <LoadingState text={"Setting frames..."} />
+                )}
+            </div>
+
+            {/*three.js canvas*/}
+            <div
+                className={"absolute inset-0 h-screen w-screen bg-transparent"}
+            >
+                <Canvas
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragEnd}
+                >
+                    <PerspectiveCamera makeDefault position={[5, 5, 5]} />
+                    <OrbitControls rotateSpeed={0.2} panSpeed={0.5} />
+                    <Particles />
+                    <ambientLight />
+                    <gridHelper />
+                    {/* <Perf position="top-right" minimal="true"/> */}
+                </Canvas>
+            </div>
+
+            {/*file upload box*/}
+            {animState === AnimState.nothing && (
+                <div
+                    className={`flex h-screen w-screen absolute items-center justify-center select-none pointer-events-none`}
+                >
+                    <div
+                        className={`flex flex-col items-center justify-center h-min border border-neutral-800 p-6 py-4 rounded-xl gap-2 backdrop-blur-sm ${
+                            draggingFile
+                                ? "text-neutral-400 bg-neutral-50 bg-opacity-5"
+                                : "text-neutral-500"
+                        }`}
+                    >
+                        <Upload />
+                        <p>Drag and drop Shiny (.shny) file</p>
+                        <div className="pointer-events-auto">
+                            <Button
+                                variant="link"
+                                className="p-0 h-min"
+                                onClick={() => loadExample("len3.shny")}
+                            >
+                                or
+                            </Button>{" "}
+                            <Button
+                                variant="link"
+                                className="p-0 h-min"
+                                onClick={() => loadExample("req.shny")}
+                            >
+                                try
+                            </Button>{" "}
+                            <Button
+                                variant="link"
+                                className="p-0 h-min"
+                                onClick={() => loadExample("sheepy2.shny")}
+                            >
+                                example
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/*"hud"*/}
+            <div className="flex flex-col justify-start p-4 absolute w-screen h-full text-foreground pointer-events-none select-none">
+                <div className="flex justify-between mb-auto">
+                    {/*top-left corner stats*/}
+                    <div className="">
+                        {/*<button onClick={handlePlayClick} className={`text-5xl + {playing ? "text-green-500" : text-yellow-500}`}>{playing ? "Pause" : "Play"}</button>*/}
+                        <p>Loaded {frames.length} frames</p>
+                        <p>Frame: {frame}</p>
+                        {/*<p>*/}
+                        {/*    AnimationState:{" "}*/}
+                        {/*    {animState + " " + AnimState[animState]},*/}
+                        {/*    LoadProgress: {loadProgress}*/}
+                        {/*</p>*/}
+                        {/*<p>Playing: {playing.toString()}</p>*/}
+                    </div>
+                    {/*top-right buttons*/}
+
+                    <div className="pointer-events-auto flex gap-2">
+                        <Button
+                            size="icon"
+                            variant="outline"
+                            disabled={animState !== AnimState.ready}
+                        >
+                            <RefreshCcw
+                                className="w-[1.2rem] h-[1.2rem]"
+                                name="Reset"
+                                onClick={() => {
+                                    setAnimState(AnimState.nothing);
+                                    setPlaying(false);
+                                    setFrame(0);
+                                    setFrames([]);
+                                }}
+                            />
+                        </Button>
+                        <ModeToggle />
+                    </div>
+                </div>
+
+                {/*timeline*/}
+                <div className="flex justify-start gap-6">
+                    <Button
+                        onClick={handlePlayClick}
+                        variant="secondary"
+                        size="icon"
+                        className="h-12 w-12 pointer-events-auto"
+                        //     className={`text-5xl pointer-events-auto ${(playing ? "text-yellow-500" : "text-green-500")}`}>
+                        // {playing ? "Pause" : "Play"}
+                    >
+                        {playing ? (
+                            <Pause className="w-12" />
+                        ) : (
+                            <Play className="w-12" />
+                        )}
+                    </Button>
+                    <Slider
+                        value={[frame]}
+                        className="cursor-pointer pointer-events-auto"
+                        min={0}
+                        max={Math.max(frames.length - 1, 0.1)}
+                        step={1}
+                        onValueChange={(v) => setFrame(v[0])}
+                    />
+                </div>
+            </div>
+        </>
+    );
     function Particles() {
         if (frames.length === 0) return;
         if (frame === null) return;
@@ -133,116 +311,4 @@ export default function Viewport() {
             </>
         );
     }
-
-    function handlePlayClick() {
-        fileLoaderWorker.postMessage("moro");
-        setPlaying((prevState) => !prevState);
-    }
-
-    async function loadExample(fileName: string) {
-        setHideFileUpload(true);
-        const response = await fetch(`/assets/${fileName}`);
-        const blob = await response.blob();
-        const file = new File([blob], fileName);
-        fileLoaderWorker.postMessage(file);
-    }
-
-    return (
-        <>
-            <div
-                className={"absolute inset-0 h-screen w-screen bg-transparent"}
-            >
-                <Canvas
-                    onDrop={handleDrop}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragEnd}
-                >
-                    <PerspectiveCamera makeDefault position={[5, 5, 5]} />
-                    <OrbitControls rotateSpeed={0.2} panSpeed={0.5} />
-                    <Particles />
-                    <ambientLight />
-                    <gridHelper />
-                    {/* <Perf position="top-right" minimal="true"/> */}
-                </Canvas>
-            </div>
-
-            {frames.length == 0 && !hideFileUpload && (
-                <div
-                    className={`flex h-screen w-screen absolute items-center justify-center select-none pointer-events-none`}
-                >
-                    <div
-                        className={`flex flex-col items-center justify-center h-min border border-neutral-800 p-6 py-4 rounded-xl gap-2 backdrop-blur-sm ${
-                            draggingFile
-                                ? "text-neutral-400 bg-neutral-50 bg-opacity-5"
-                                : "text-neutral-500"
-                        }`}
-                    >
-                        <Upload />
-                        <p>Drag and drop Shiny (.shny) file</p>
-                        <div className="pointer-events-auto">
-                            <Button
-                                variant="link"
-                                className="p-0 h-min"
-                                onClick={() => loadExample("len3.shny")}
-                            >
-                                or
-                            </Button>{" "}
-                            <Button
-                                variant="link"
-                                className="p-0 h-min"
-                                onClick={() => loadExample("req.shny")}
-                            >
-                                try
-                            </Button>{" "}
-                            <Button
-                                variant="link"
-                                className="p-0 h-min"
-                                onClick={() => loadExample("sheepy2.shny")}
-                            >
-                                example
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <div className="flex flex-col justify-start p-4 absolute w-screen h-full text-foreground pointer-events-none select-none">
-                <div className="flex justify-between mb-auto">
-                    <div className="">
-                        {/*<button onClick={handlePlayClick} className={`text-5xl + {playing ? "text-green-500" : text-yellow-500}`}>{playing ? "Pause" : "Play"}</button>*/}
-                        <p>Loaded {frames.length} frames</p>
-                        <p>Frame: {frame}</p>
-                        {/*<p>Playing: {playing.toString()}</p>*/}
-                    </div>
-                    <div className="pointer-events-auto">
-                        <ModeToggle />
-                    </div>
-                </div>
-                <div className="flex justify-start gap-6">
-                    <Button
-                        onClick={handlePlayClick}
-                        variant="secondary"
-                        size="icon"
-                        className="h-12 w-12 pointer-events-auto"
-                        //     className={`text-5xl pointer-events-auto ${(playing ? "text-yellow-500" : "text-green-500")}`}>
-                        // {playing ? "Pause" : "Play"}
-                    >
-                        {playing ? (
-                            <Pause className="w-12" />
-                        ) : (
-                            <Play className="w-12" />
-                        )}
-                    </Button>
-                    <Slider
-                        value={[frame]}
-                        className="cursor-pointer pointer-events-auto"
-                        min={0}
-                        max={Math.max(frames.length - 1, 0)}
-                        step={1}
-                        onValueChange={(v) => setFrame(v[0])}
-                    />
-                </div>
-            </div>
-        </>
-    );
 }

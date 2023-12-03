@@ -10,11 +10,42 @@ export type AnimationParticle = [
     pscale: number,
 ];
 
-self.onmessage = async (e: MessageEvent<File>) => {
-    console.log("getting frames:", e.data);
-    const frames = await getFrames(e.data);
-    self.postMessage(frames);
+export enum AnimState {
+    "nothing",
+    "fetching",
+    "reading",
+    "parsing",
+    "setting",
+    "ready",
+}
+
+export type LoaderResponse = {
+    state?: AnimState;
+    progress?: number;
+    frames?: AnimationParticle[][];
+    target?: "sheepy";
 };
+
+export type LoaderInput = {
+    file: File;
+    target?: "sheepy";
+};
+
+self.onmessage = async (e: MessageEvent<LoaderInput>) => {
+    if (e.data.target !== "sheepy") return console.log("turha msg:", e);
+
+    const frames = await getFrames(e.data.file);
+    postLoaderResponse({ state: AnimState.setting, progress: 0 });
+    postLoaderResponse({ frames });
+};
+
+export function postLoaderResponse(response: LoaderResponse) {
+    self.postMessage({ ...response, target: "sheepy" } as LoaderResponse);
+}
+
+export function createLoaderInput(response: LoaderInput): LoaderInput {
+    return { ...response, target: "sheepy" };
+}
 
 async function getFrames(file: File): Promise<AnimationParticle[][]> {
     // console.log("length:", length);
@@ -24,6 +55,11 @@ async function getFrames(file: File): Promise<AnimationParticle[][]> {
     const view = new DataView(buffer.buffer);
 
     let readOffset = 0;
+
+    self.postMessage({
+        state: AnimState.reading,
+        progress: 0,
+    } as LoaderResponse);
 
     async function readData() {
         const { done, value } = await reader.read();
@@ -38,6 +74,9 @@ async function getFrames(file: File): Promise<AnimationParticle[][]> {
         buffer.set(value, readOffset);
         readOffset += value.byteLength;
 
+        postLoaderResponse({
+            progress: (readOffset / buffer.byteLength) * 100,
+        });
         await readData();
     }
 
@@ -60,6 +99,8 @@ async function getFrames(file: File): Promise<AnimationParticle[][]> {
     console.log("file.size", file.size);
 
     try {
+        postLoaderResponse({ state: AnimState.parsing, progress: 0 });
+
         // read all frames
         while (offset < value.byteLength) {
             // console.log("offset:", offset, "length:", length, "bytelength:", value.byteLength, "byteoffset:", value.byteOffset);
@@ -98,6 +139,7 @@ async function getFrames(file: File): Promise<AnimationParticle[][]> {
             }
             // console.log("flength:", frameLength);
             frames.push(frame);
+            postLoaderResponse({ progress: (offset / value.byteLength) * 100 });
         }
     } catch (e) {
         console.error("failed to read file:", e);
@@ -108,5 +150,3 @@ async function getFrames(file: File): Promise<AnimationParticle[][]> {
 
     return frames;
 }
-
-export { getFrames };
