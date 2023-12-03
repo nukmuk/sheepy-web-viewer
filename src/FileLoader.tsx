@@ -32,7 +32,7 @@ export type LoaderInput = {
 };
 
 self.onmessage = async (e: MessageEvent<LoaderInput>) => {
-    if (e.data.target !== "sheepy") return console.log("turha msg:", e);
+    if (e.data.target !== "sheepy") return;
 
     const frames = await getFrames(e.data.file);
     postLoaderResponse({ state: AnimState.setting, progress: 0 });

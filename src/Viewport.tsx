@@ -63,7 +63,7 @@ export default function Viewport() {
         if (e.data.progress) setLoadProgess(e.data.progress);
     };
 
-    async function handleDrop(e: DragEvent<HTMLDivElement>) {
+    function handleDrop(e: DragEvent<HTMLDivElement>) {
         e.preventDefault();
         setAnimState(AnimState.fetching);
         const file = e.dataTransfer.files[0];
@@ -153,7 +153,7 @@ export default function Viewport() {
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragEnd}
                 >
-                    <PerspectiveCamera makeDefault position={[5, 5, 5]} />
+                    <PerspectiveCamera makeDefault position={[5, 4, 5]} />
                     <OrbitControls rotateSpeed={0.2} panSpeed={0.5} />
                     <Particles />
                     <ambientLight />
@@ -196,7 +196,7 @@ export default function Viewport() {
                                 className="p-0 h-min"
                                 onClick={() => loadExample("sheepy2.shny")}
                             >
-                                example
+                                examples
                             </Button>
                         </div>
                     </div>
