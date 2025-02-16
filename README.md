@@ -1,4 +1,7 @@
-Try it here: https://sheepy-web-viewer.vercel.app/
+Try it: https://sheepy-web-viewer.vercel.app/
+
+[![image](https://github.com/user-attachments/assets/8feadb20-6db6-4079-8869-9626d2879e54)](https://sheepy-web-viewer.vercel.app/)
+
 
 # Features
 - Beautiful UI designed by me (with Tailwind CSS and shadcn-ui) 🥰
