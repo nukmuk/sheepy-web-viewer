@@ -67,7 +67,21 @@ export default function Viewport() {
         e.preventDefault();
         setAnimState(AnimState.fetching);
         const file = e.dataTransfer.files[0];
-        sendFileToWorker(file);
+        
+        if (!file) {
+            console.error("No file dropped");
+            setAnimState(AnimState.nothing);
+            return;
+        }
+        
+        console.log("Dropped file:", file.name, file.size, file.type);
+        
+        try {
+            sendFileToWorker(file);
+        } catch (err) {
+            console.error("Error sending to worker:", err);
+            setAnimState(AnimState.nothing);
+        }
     }
 
     function handleDragOver(e: DragEvent<HTMLDivElement>) {
@@ -99,24 +113,38 @@ export default function Viewport() {
         const response = await fetch(url);
         const length_string = response.headers.get("Content-Length");
 
-        if (!length_string || !response.body)
+        if (!length_string || !response.body) {
             return await response.arrayBuffer();
+        }
 
-        const length = parseInt(length_string);
-
-        const array = new Uint8Array(length);
-        let offset = 0;
-
+        const totalLength = parseInt(length_string);
         const reader = response.body.getReader();
+        
+        // Collect chunks first, then combine them
+        const chunks: Uint8Array[] = [];
+        let receivedLength = 0;
 
         for (;;) {
             const { done, value } = await reader.read();
             if (done) break;
-            array.set(value, offset);
-            offset += value.length;
-            setLoadProgess(offset / length);
+            
+            chunks.push(value);
+            receivedLength += value.length;
+            
+            // Update progress - cap at 1.0 if received exceeds expected
+            const progress = totalLength > 0 ? Math.min(receivedLength / totalLength, 1.0) : 0;
+            setLoadProgess(progress);
         }
-        return array;
+
+        // Combine all chunks into one array
+        const result = new Uint8Array(receivedLength);
+        let offset = 0;
+        for (const chunk of chunks) {
+            result.set(chunk, offset);
+            offset += chunk.length;
+        }
+
+        return result;
     }
 
     return (
