@@ -131,9 +131,9 @@ export default function Viewport() {
             chunks.push(value);
             receivedLength += value.length;
             
-            // Update progress based on received vs expected
-            // If actual size exceeds Content-Length, use received size
-            setLoadProgess(receivedLength / Math.max(totalLength, receivedLength));
+            // Update progress - cap at 1.0 if received exceeds expected
+            const progress = Math.min(receivedLength / totalLength, 1.0);
+            setLoadProgess(progress);
         }
 
         // Combine all chunks into one array
