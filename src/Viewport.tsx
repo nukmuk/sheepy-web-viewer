@@ -132,7 +132,7 @@ export default function Viewport() {
             receivedLength += value.length;
             
             // Update progress - cap at 1.0 if received exceeds expected
-            const progress = Math.min(receivedLength / totalLength, 1.0);
+            const progress = totalLength > 0 ? Math.min(receivedLength / totalLength, 1.0) : 0;
             setLoadProgess(progress);
         }
 
